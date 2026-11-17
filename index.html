@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f0b1c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Estudos</title>
+<style>
+:root {
+  color-scheme: dark;
+  --fundo: #0f0b1c;
+  --cartao: #1a1430;
+  --cartao-2: #221a3e;
+  --borda: rgba(255, 255, 255, .07);
+  --cor: #6b46c8;
+  --cor-claro: #b196f5;
+  --texto: #eeeafb;
+  --fraco: #a096bf;
+  --escuro: #2c1763;
+  --sombra: 0 12px 28px rgba(0, 0, 0, .5), 0 2px 6px rgba(0, 0, 0, .35);
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+body {
+  margin: 0;
+  background: radial-gradient(120% 60% at 50% 0%, #24184a 0%, var(--fundo) 60%) fixed;
+  color: var(--texto);
+  font: 16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  padding: calc(14px + env(safe-area-inset-top)) 14px calc(96px + env(safe-area-inset-bottom));
+}
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+main { max-width: 640px; margin: 0 auto; }
+[hidden] { display: none !important; }
+h2 { font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--cor-claro); margin: 22px 4px 10px; }
+
+.destaque {
+  background: linear-gradient(140deg, #7a52dc 0%, #4b2a9e 55%, #2c1763 100%);
+  border-radius: 24px;
+  padding: 22px;
+  box-shadow: 0 18px 36px rgba(60, 30, 130, .5), inset 0 1px 0 rgba(255, 255, 255, .16);
+  margin-bottom: 18px;
+}
+.destaque small { text-transform: uppercase; letter-spacing: .12em; font-size: 12px; opacity: .8; font-weight: 600; }
+.destaque h1 { margin: 6px 0 4px; font-size: 28px; line-height: 1.15; letter-spacing: -.02em; }
+.destaque p { margin: 0; opacity: .85; }
+.navegar { display: flex; align-items: center; gap: 10px; }
+.navegar div { flex: 1; min-width: 0; }
+.seta { width: 42px; height: 42px; border: 0; border-radius: 14px; background: rgba(0, 0, 0, .22); font-size: 22px; flex: none; }
+.barra { height: 8px; border-radius: 999px; background: rgba(0, 0, 0, .28); margin-top: 16px; overflow: hidden; }
+.barra i { display: block; height: 100%; border-radius: 999px; background: var(--texto); }
+.card .barra { margin-top: 10px; background: rgba(255, 255, 255, .08); }
+.card .barra i { background: var(--cor-claro); }
+.card .barra i.estourou { background: #e5766a; }
+
+.card {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: linear-gradient(180deg, var(--cartao-2), var(--cartao));
+  border: 1px solid var(--borda);
+  border-radius: 20px;
+  box-shadow: var(--sombra);
+  margin-bottom: 12px;
+  padding: 16px 18px;
+}
+.card.marcado { border-color: var(--cor-claro); }
+.topo { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+.topo b { font-size: 17px; overflow-wrap: anywhere; min-width: 0; }
+.topo em { font-style: normal; font-weight: 700; font-variant-numeric: tabular-nums; flex: none; }
+.card span { color: var(--fraco); font-size: 13px; }
+.card .lado { color: var(--cor-claro); font-size: 13px; font-weight: 600; flex: none; }
+.selo { background: var(--cor); color: #fff !important; font-size: 11px !important; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; border-radius: 999px; padding: 3px 9px; flex: none; }
+.vazio { color: var(--fraco); text-align: center; padding: 22px 10px; margin: 0; }
+
+.principal {
+  width: 100%;
+  border: 0;
+  border-radius: 16px;
+  padding: 15px;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(180deg, #7a52dc, var(--cor));
+  box-shadow: 0 10px 22px rgba(60, 30, 130, .5), inset 0 1px 0 rgba(255, 255, 255, .18);
+  margin-bottom: 16px;
+}
+.principal:disabled { opacity: .4; }
+.botao { display: block; width: 100%; text-align: center; border: 1px solid var(--borda); background: var(--cartao-2); border-radius: 14px; padding: 13px; font-weight: 600; }
+.pequeno { width: auto; padding: 8px 16px; margin: 12px 0 0; font-size: 14px; border-radius: 12px; }
+.periodo { display: flex; gap: 4px; padding: 4px; border-radius: 14px; background: rgba(0, 0, 0, .25); margin-top: 16px; }
+.periodo button { flex: 1; border: 0; background: none; border-radius: 10px; padding: 8px; font-weight: 600; font-size: 14px; opacity: .75; }
+.periodo button.ativo { background: var(--texto); color: var(--escuro); opacity: 1; }
+.grafico { padding: 14px 10px 8px; }
+.grafico svg { display: block; width: 100%; height: auto; }
+
+nav {
+  position: fixed;
+  left: 14px;
+  right: 14px;
+  bottom: calc(14px + env(safe-area-inset-bottom));
+  max-width: 612px;
+  margin: 0 auto;
+  display: flex;
+  gap: 4px;
+  padding: 6px;
+  background: color-mix(in srgb, var(--cartao) 92%, transparent);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--borda);
+  border-radius: 22px;
+  box-shadow: var(--sombra);
+}
+nav button { flex: 1; border: 0; background: none; border-radius: 16px; padding: 9px 0 8px; color: var(--fraco); font-size: 12px; font-weight: 600; }
+nav svg { display: block; width: 22px; height: 22px; margin: 0 auto 3px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+nav button.ativo { background: var(--cor); color: #fff; box-shadow: 0 6px 14px rgba(60, 30, 130, .5); }
+
+dialog {
+  width: min(520px, 94vw);
+  max-height: 92vh;
+  border: 1px solid var(--borda);
+  border-radius: 24px;
+  background: var(--cartao);
+  color: var(--texto);
+  padding: 20px;
+  box-shadow: var(--sombra);
+}
+dialog::backdrop { background: rgba(0, 0, 0, .7); backdrop-filter: blur(3px); }
+dialog h3 { margin: 0 0 6px; font-size: 20px; }
+.campo { display: block; color: var(--fraco); font-size: 14px; margin: 12px 0 4px; }
+input[type=text], input[type=date], select {
+  width: 100%;
+  background: var(--fundo);
+  border: 1px solid var(--borda);
+  border-radius: 14px;
+  padding: 13px;
+}
+input:focus, select:focus { outline: 2px solid var(--cor-claro); outline-offset: 1px; }
+.linha { display: flex; gap: 10px; margin-top: 16px; }
+.linha > * { flex: 1; margin-bottom: 0; }
+.excluir { color: #ef9a8f; flex: 0 0 auto; width: auto; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chips label { position: relative; }
+.chips input { position: absolute; opacity: 0; }
+.chips span { display: block; border: 1px solid var(--borda); border-radius: 999px; padding: 8px 14px; }
+.chips input:checked + span { background: var(--cor); border-color: var(--cor); color: #fff; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<main id="telaEstudar">
+  <section class="destaque">
+    <small id="cicloNome"></small>
+    <h1 id="cicloPct"></h1>
+    <p id="hojeTexto"></p>
+    <div class="barra"><i id="barraHoje"></i></div>
+  </section>
+  <div class="card marcado" id="timer" hidden>
+    <span id="timerMateria"></span>
+    <div id="relogio"></div>
+    <div class="linha">
+      <button class="botao" id="pausar"></button>
+      <button class="principal" id="finalizar">Finalizar</button>
+    </div>
+    <button class="botao pequeno excluir" id="descartar">Descartar</button>
+  </div>
+  <button class="principal" id="novoCiclo" hidden></button>
+  <div id="listaEstudar"></div>
+  <button class="botao" id="manual">+ Lançar sessão manualmente</button>
+</main>
+
+<main id="telaEvolucao" hidden>
+  <section class="destaque">
+    <small>Total no período</small>
+    <h1 id="total"></h1>
+    <p>Horas estudadas por dia</p>
+    <div class="periodo">
+      <button data-dias="7" class="ativo">7 dias</button>
+      <button data-dias="30">30 dias</button>
+    </div>
+  </section>
+  <div class="card grafico" id="grafico"></div>
+  <div id="resumos"></div>
+  <h2>Últimas sessões</h2>
+  <div id="sessoes"></div>
+</main>
+
+<main id="telaMaterias" hidden>
+  <section class="destaque">
+    <small>Matérias do ciclo</small>
+    <h1 id="totalMaterias"></h1>
+    <p id="cicloHoras"></p>
+  </section>
+  <div class="card">
+    <label class="campo" for="metaDia" style="margin-top:0">Meta de estudo por dia (horas)</label>
+    <input type="text" id="metaDia" inputmode="decimal">
+  </div>
+  <button class="principal" id="nova">+ Nova matéria</button>
+  <div id="listaMaterias"></div>
+</main>
+
+<nav>
+  <button data-tela="telaEstudar" class="ativo">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/></svg>Estudar
+  </button>
+  <button data-tela="telaEvolucao">
+    <svg viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-9M15 6h6v6"/></svg>Evolução
+  </button>
+  <button data-tela="telaMaterias">
+    <svg viewBox="0 0 24 24"><path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2zM4 21a2 2 0 0 0 2 2h13M9 8h6"/></svg>Matérias
+  </button>
+</nav>
+
+<dialog id="dlgSessao">
+  <form id="formSessao">
+    <h3>Sessão de estudo</h3>
+    <label class="campo" for="sMateria">Matéria</label>
+    <select id="sMateria" required></select>
+    <label class="campo" for="sMin">Tempo estudado (minutos)</label>
+    <input type="text" id="sMin" inputmode="numeric" required>
+    <div class="linha" style="margin-top:0">
+      <div><label class="campo" for="sQuestoes">Questões feitas</label><input type="text" id="sQuestoes" inputmode="numeric"></div>
+      <div><label class="campo" for="sAcertos">Acertos</label><input type="text" id="sAcertos" inputmode="numeric"></div>
+    </div>
+    <label class="campo" for="sData">Data</label>
+    <input type="date" id="sData" required>
+    <div class="linha">
+      <button type="button" class="botao" id="sCancelar">Cancelar</button>
+      <button class="principal">Salvar</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlgMateria">
+  <form id="formMateria">
+    <h3 id="tituloMateria"></h3>
+    <label class="campo" for="mNome">Nome</label>
+    <input type="text" id="mNome" maxlength="50" required>
+    <label class="campo" for="mHoras">Horas no ciclo</label>
+    <input type="text" id="mHoras" inputmode="decimal" placeholder="Ex.: 3 ou 1,5" required>
+    <div class="linha">
+      <button type="button" class="botao excluir" id="mExcluir">Excluir</button>
+      <button type="button" class="botao" id="mCancelar">Cancelar</button>
+      <button class="principal">Salvar</button>
+    </div>
+  </form>
+</dialog>
+
+<style>
+#relogio { font-size: 44px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.02em; margin: 2px 0 4px; }
+</style>
+
+<script>
+const $ = id => document.getElementById(id);
+
+function iso(d) {
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+function hoje() {
+  return iso(new Date());
+}
+
+function dataDe(texto) {
+  return new Date(texto + 'T12:00:00');
+}
+
+function somarDias(texto, n) {
+  const d = dataDe(texto);
+  d.setDate(d.getDate() + n);
+  return iso(d);
+}
+
+function br(texto) {
+  return texto.split('-').reverse().join('/');
+}
+
+function decimal(texto) {
+  return Number(texto.includes(',') ? texto.replace(/\./g, '').replace(',', '.') : texto);
+}
+
+function el(tag, props, ...filhos) {
+  const e = Object.assign(document.createElement(tag), props);
+  e.append(...filhos.filter(Boolean));
+  return e;
+}
+
+function barra(fracao) {
+  return el('div', { className: 'barra' }, el('i', { className: fracao > 1 ? 'estourou' : '', style: 'width:' + Math.min(100, fracao * 100) + '%' }));
+}
+
+function graficoLinha(alvo, pontos, max, formato) {
+  const x = i => 44 + i * 264 / Math.max(pontos.length - 1, 1);
+  const y = v => 12 + (1 - v / max) * 96;
+  const raio = pontos.length > 10 ? 2.6 : 4.2;
+  const rotulos = [...new Set([0, Math.floor((pontos.length - 1) / 2), pontos.length - 1])];
+  alvo.innerHTML = '<svg viewBox="0 0 320 132">'
+    + [0, max / 2, max].map(v => '<line x1="44" x2="308" y1="' + y(v) + '" y2="' + y(v) + '" stroke="rgba(255,255,255,.09)"/>'
+      + '<text x="38" y="' + (y(v) + 3) + '" text-anchor="end" font-size="9" fill="#a096bf">' + formato(v) + '</text>').join('')
+    + '<polyline points="' + pontos.map((p, i) => x(i) + ',' + y(p.v)).join(' ') + '" fill="none" stroke="#b196f5" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>'
+    + pontos.map((p, i) => '<circle cx="' + x(i) + '" cy="' + y(p.v) + '" r="' + raio + '" fill="#eeeafb" stroke="#6b46c8" stroke-width="1.6"/>').join('')
+    + rotulos.map(i => '<text x="' + x(i) + '" y="127" text-anchor="middle" font-size="9" fill="#a096bf">' + pontos[i].rotulo + '</text>').join('')
+    + '</svg>';
+}
+
+function iniciarApp(renderTudo) {
+  document.querySelectorAll('nav button').forEach(b => {
+    b.onclick = () => {
+      document.querySelectorAll('nav button').forEach(x => x.classList.toggle('ativo', x === b));
+      document.querySelectorAll('main').forEach(m => { m.hidden = m.id !== b.dataset.tela; });
+      renderTudo();
+      scrollTo(0, 0);
+    };
+  });
+  renderTudo();
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js');
+  }
+  if (navigator.storage && navigator.storage.persist) {
+    navigator.storage.persist();
+  }
+}
+
+const CHAVE = 'estudos-v1';
+let dados = carregar();
+let periodo = 7;
+let editando = null;
+let finalizando = false;
+
+function carregar() {
+  const padrao = { materias: [], sessoes: [], ciclo: { numero: 1, inicio: 0 }, metaDia: 4, timer: null };
+  try {
+    return Object.assign(padrao, JSON.parse(localStorage.getItem(CHAVE)));
+  } catch (e) {
+    return padrao;
+  }
+}
+
+function salvar() {
+  localStorage.setItem(CHAVE, JSON.stringify(dados));
+}
+
+function tempo(min) {
+  return Math.floor(min / 60) + 'h' + String(Math.round(min % 60)).padStart(2, '0');
+}
+
+function relogio(ms) {
+  const s = Math.floor(ms / 1000);
+  return [Math.floor(s / 3600), Math.floor(s / 60) % 60, s % 60].map(n => String(n).padStart(2, '0')).join(':');
+}
+
+function somaMin(sessoes) {
+  return sessoes.reduce((s, x) => s + x.min, 0);
+}
+
+function minCiclo(id) {
+  return somaMin(dados.sessoes.filter(s => s.materia === id && s.ts >= dados.ciclo.inicio));
+}
+
+function nomeMateria(id) {
+  const m = dados.materias.find(x => x.id === id);
+  return m ? m.nome : 'Matéria excluída';
+}
+
+function decorrido() {
+  return dados.timer.acumulado + (dados.timer.inicio ? Date.now() - dados.timer.inicio : 0);
+}
+
+function renderEstudar() {
+  const total = dados.materias.reduce((s, m) => s + m.horas * 60, 0);
+  const feito = dados.materias.reduce((s, m) => s + Math.min(minCiclo(m.id), m.horas * 60), 0);
+  const minHoje = somaMin(dados.sessoes.filter(s => s.data === hoje()));
+  const proxima = dados.materias.find(m => minCiclo(m.id) < m.horas * 60);
+  $('cicloNome').textContent = 'Ciclo ' + dados.ciclo.numero;
+  $('cicloPct').textContent = total ? Math.round(feito / total * 100) + '% do ciclo' : 'Sem matérias';
+  $('hojeTexto').textContent = 'Hoje: ' + tempo(minHoje) + ' de ' + tempo(dados.metaDia * 60);
+  $('barraHoje').style.width = Math.min(100, minHoje / (dados.metaDia * 60) * 100) + '%';
+  $('novoCiclo').hidden = !total || feito < total;
+  $('novoCiclo').textContent = 'Ciclo concluído · Iniciar ciclo ' + (dados.ciclo.numero + 1);
+  $('timer').hidden = !dados.timer;
+  if (dados.timer) {
+    $('timerMateria').textContent = nomeMateria(dados.timer.materia);
+    $('relogio').textContent = relogio(decorrido());
+    $('pausar').textContent = dados.timer.inicio ? 'Pausar' : 'Continuar';
+  }
+  $('listaEstudar').replaceChildren(...dados.materias.map(m =>
+    el('div', { className: 'card' + (m === proxima ? ' marcado' : '') },
+      el('div', { className: 'topo' }, el('b', {}, m.nome), m === proxima && el('span', { className: 'selo' }, 'Próxima')),
+      el('span', {}, tempo(minCiclo(m.id)) + ' de ' + tempo(m.horas * 60) + ' no ciclo'),
+      barra(Math.min(1, minCiclo(m.id) / (m.horas * 60))),
+      el('button', { className: 'botao pequeno', disabled: Boolean(dados.timer), onclick: () => iniciar(m.id) }, 'Estudar'))));
+  if (!dados.materias.length) {
+    $('listaEstudar').append(el('p', { className: 'vazio' }, 'Cadastre suas matérias na aba Matérias.'));
+  }
+  $('manual').hidden = !dados.materias.length;
+}
+
+function renderEvolucao() {
+  const dias = Array.from({ length: periodo }, (v, i) => somarDias(hoje(), i - periodo + 1));
+  const pontos = dias.map(d => ({ rotulo: br(d).slice(0, 5), v: somaMin(dados.sessoes.filter(s => s.data === d)) / 60 }));
+  const noPeriodo = dados.sessoes.filter(s => s.data >= dias[0] && s.data <= hoje());
+  $('total').textContent = tempo(somaMin(noPeriodo));
+  graficoLinha($('grafico'), pontos, Math.max(dados.metaDia, ...pontos.map(p => p.v)), v => String(Math.round(v * 10) / 10).replace('.', ',') + 'h');
+  $('resumos').replaceChildren(...dados.materias.map(m => {
+    const lista = noPeriodo.filter(s => s.materia === m.id);
+    const questoes = lista.reduce((s, x) => s + x.questoes, 0);
+    const acertos = lista.reduce((s, x) => s + x.acertos, 0);
+    return el('div', { className: 'card' },
+      el('div', { className: 'topo' }, el('b', {}, m.nome), el('em', {}, tempo(somaMin(lista)))),
+      el('span', {}, questoes ? questoes + ' questões · ' + Math.round(acertos / questoes * 100) + '% de acerto' : 'Nenhuma questão registrada'));
+  }));
+  $('sessoes').replaceChildren(...[...dados.sessoes].sort((a, b) => b.ts - a.ts).slice(0, 8).map(s =>
+    el('button', { className: 'card', onclick: () => excluirSessao(s) },
+      el('div', { className: 'topo' }, el('b', {}, nomeMateria(s.materia)), el('em', {}, tempo(s.min))),
+      el('span', {}, br(s.data) + (s.questoes ? ' · ' + s.acertos + ' de ' + s.questoes + ' questões' : '') + ' · toque para excluir'))));
+  if (!dados.sessoes.length) {
+    $('sessoes').append(el('p', { className: 'vazio' }, 'Nenhuma sessão registrada ainda.'));
+  }
+}
+
+function renderMaterias() {
+  $('totalMaterias').textContent = dados.materias.length + (dados.materias.length === 1 ? ' matéria' : ' matérias');
+  $('cicloHoras').textContent = 'Ciclo de ' + tempo(dados.materias.reduce((s, m) => s + m.horas * 60, 0));
+  $('metaDia').value = String(dados.metaDia).replace('.', ',');
+  $('listaMaterias').replaceChildren(...dados.materias.map(m =>
+    el('button', { className: 'card', onclick: () => abrirMateria(m) },
+      el('div', { className: 'topo' }, el('b', {}, m.nome), el('span', { className: 'lado' }, 'Editar')),
+      el('span', {}, tempo(m.horas * 60) + ' no ciclo'))));
+  if (!dados.materias.length) {
+    $('listaMaterias').append(el('p', { className: 'vazio' }, 'Nenhuma matéria cadastrada ainda.'));
+  }
+}
+
+function renderTudo() {
+  renderEstudar();
+  renderEvolucao();
+  renderMaterias();
+}
+
+function iniciar(id) {
+  dados.timer = { materia: id, inicio: Date.now(), acumulado: 0 };
+  salvar();
+  renderEstudar();
+}
+
+function pausarTimer() {
+  if (dados.timer.inicio) {
+    dados.timer.acumulado = decorrido();
+    dados.timer.inicio = null;
+  }
+  salvar();
+}
+
+function abrirSessao(materia, min) {
+  $('sMateria').replaceChildren(...dados.materias.map(m => el('option', { value: m.id }, m.nome)));
+  if (materia) {
+    $('sMateria').value = materia;
+  }
+  $('sMin').value = min;
+  $('sQuestoes').value = '';
+  $('sAcertos').value = '';
+  $('sData').value = hoje();
+  $('dlgSessao').showModal();
+}
+
+function excluirSessao(s) {
+  if (!confirm('Excluir a sessão de ' + nomeMateria(s.materia) + ' (' + tempo(s.min) + ')?')) {
+    return;
+  }
+  dados.sessoes = dados.sessoes.filter(x => x.id !== s.id);
+  salvar();
+  renderTudo();
+}
+
+function abrirMateria(m) {
+  editando = m || null;
+  $('tituloMateria').textContent = m ? 'Editar matéria' : 'Nova matéria';
+  $('mNome').value = m ? m.nome : '';
+  $('mHoras').value = m ? String(m.horas).replace('.', ',') : '';
+  $('mExcluir').hidden = !m;
+  $('dlgMateria').showModal();
+}
+
+$('pausar').onclick = () => {
+  if (dados.timer.inicio) {
+    pausarTimer();
+  } else {
+    dados.timer.inicio = Date.now();
+    salvar();
+  }
+  renderEstudar();
+};
+
+$('finalizar').onclick = () => {
+  pausarTimer();
+  renderEstudar();
+  finalizando = true;
+  abrirSessao(dados.timer.materia, Math.max(1, Math.round(decorrido() / 60000)));
+};
+
+$('descartar').onclick = () => {
+  if (!confirm('Descartar o tempo do cronômetro?')) {
+    return;
+  }
+  dados.timer = null;
+  salvar();
+  renderEstudar();
+};
+
+$('novoCiclo').onclick = () => {
+  dados.ciclo = { numero: dados.ciclo.numero + 1, inicio: Date.now() };
+  salvar();
+  renderTudo();
+};
+
+$('manual').onclick = () => {
+  finalizando = false;
+  abrirSessao(null, '');
+};
+$('sCancelar').onclick = () => $('dlgSessao').close();
+$('mCancelar').onclick = () => $('dlgMateria').close();
+$('nova').onclick = () => abrirMateria();
+
+$('formSessao').onsubmit = e => {
+  e.preventDefault();
+  const min = Math.round(decimal($('sMin').value));
+  const questoes = Math.round(decimal($('sQuestoes').value)) || 0;
+  const acertos = Math.round(decimal($('sAcertos').value)) || 0;
+  if (!(min > 0)) {
+    alert('Informe o tempo em minutos.');
+    return;
+  }
+  if (acertos > questoes) {
+    alert('Os acertos não podem ser maiores que as questões feitas.');
+    return;
+  }
+  dados.sessoes.push({ id: Date.now().toString(36), materia: $('sMateria').value, data: $('sData').value, min, questoes, acertos, ts: Date.now() });
+  if (finalizando) {
+    dados.timer = null;
+    finalizando = false;
+  }
+  salvar();
+  $('dlgSessao').close();
+  renderTudo();
+};
+
+$('formMateria').onsubmit = e => {
+  e.preventDefault();
+  const horas = decimal($('mHoras').value);
+  if (!(horas > 0)) {
+    alert('Informe as horas no ciclo, por exemplo 3 ou 1,5.');
+    return;
+  }
+  if (editando) {
+    editando.nome = $('mNome').value.trim();
+    editando.horas = horas;
+  } else {
+    dados.materias.push({ id: Date.now().toString(36), nome: $('mNome').value.trim(), horas });
+  }
+  salvar();
+  $('dlgMateria').close();
+  renderTudo();
+};
+
+$('mExcluir').onclick = () => {
+  if (!confirm('Excluir "' + editando.nome + '" e todas as sessões dela?')) {
+    return;
+  }
+  dados.materias = dados.materias.filter(m => m.id !== editando.id);
+  dados.sessoes = dados.sessoes.filter(s => s.materia !== editando.id);
+  if (dados.timer && dados.timer.materia === editando.id) {
+    dados.timer = null;
+  }
+  salvar();
+  $('dlgMateria').close();
+  renderTudo();
+};
+
+$('metaDia').onchange = e => {
+  const horas = decimal(e.target.value);
+  if (horas > 0) {
+    dados.metaDia = horas;
+    salvar();
+  }
+  renderTudo();
+};
+
+document.querySelectorAll('.periodo button').forEach(b => {
+  b.onclick = () => {
+    periodo = Number(b.dataset.dias);
+    document.querySelectorAll('.periodo button').forEach(x => x.classList.toggle('ativo', x === b));
+    renderEvolucao();
+  };
+});
+
+setInterval(() => {
+  if (dados.timer) {
+    $('relogio').textContent = relogio(decorrido());
+  }
+}, 1000);
+
+iniciarApp(renderTudo);
+</script>
+</body>
+</html>
