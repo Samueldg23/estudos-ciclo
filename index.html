@@ -158,12 +158,14 @@ input:focus, select:focus { outline: 2px solid var(--cor-claro); outline-offset:
     <div class="barra"><i id="barraHoje"></i></div>
   </section>
   <div class="card marcado" id="timer" hidden>
-    <span id="timerMateria"></span>
+    <div class="topo"><b id="timerMateria"></b><span class="selo" id="timerFase"></span></div>
     <div id="relogio"></div>
+    <span id="timerInfo"></span>
     <div class="linha">
       <button class="botao" id="pausar"></button>
       <button class="principal" id="finalizar">Finalizar</button>
     </div>
+    <button class="botao pequeno" id="pularPausa">Pular pausa</button>
     <button class="botao pequeno excluir" id="descartar">Descartar</button>
   </div>
   <button class="principal" id="novoCiclo" hidden></button>
@@ -196,9 +198,15 @@ input:focus, select:focus { outline: 2px solid var(--cor-claro); outline-offset:
   <div class="card">
     <label class="campo" for="metaDia" style="margin-top:0">Meta de estudo por dia (horas)</label>
     <input type="text" id="metaDia" inputmode="decimal">
+    <div class="linha" style="margin-top:0">
+      <div><label class="campo" for="pFoco">Foco (min)</label><input type="text" id="pFoco" data-pomodoro="foco" inputmode="numeric"></div>
+      <div><label class="campo" for="pPausa">Pausa (min)</label><input type="text" id="pPausa" data-pomodoro="pausa" inputmode="numeric"></div>
+      <div><label class="campo" for="pLonga">Pausa longa</label><input type="text" id="pLonga" data-pomodoro="longa" inputmode="numeric"></div>
+    </div>
   </div>
   <button class="principal" id="nova">+ Nova matéria</button>
   <div id="listaMaterias"></div>
+  <button class="botao" id="carregarBanestes">Restaurar ciclo do Banestes</button>
 </main>
 
 <nav>
@@ -238,8 +246,10 @@ input:focus, select:focus { outline: 2px solid var(--cor-claro); outline-offset:
     <h3 id="tituloMateria"></h3>
     <label class="campo" for="mNome">Nome</label>
     <input type="text" id="mNome" maxlength="50" required>
-    <label class="campo" for="mHoras">Horas no ciclo</label>
-    <input type="text" id="mHoras" inputmode="decimal" placeholder="Ex.: 3 ou 1,5" required>
+    <div class="linha" style="margin-top:0">
+      <div><label class="campo" for="mHoras">Horas na teoria</label><input type="text" id="mHoras" inputmode="decimal" placeholder="Ex.: 3" required></div>
+      <div><label class="campo" for="mRevisao">Horas na revisão</label><input type="text" id="mRevisao" inputmode="decimal" placeholder="Ex.: 0,5" required></div>
+    </div>
     <div class="linha">
       <button type="button" class="botao excluir" id="mExcluir">Excluir</button>
       <button type="button" class="botao" id="mCancelar">Cancelar</button>
@@ -250,6 +260,7 @@ input:focus, select:focus { outline: 2px solid var(--cor-claro); outline-offset:
 
 <style>
 #relogio { font-size: 44px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.02em; margin: 2px 0 4px; }
+.selo.pausa { background: #2f8f6b; }
 </style>
 
 <script>
@@ -324,18 +335,47 @@ function iniciarApp(renderTudo) {
 }
 
 const CHAVE = 'estudos-v1';
+const CICLO_BANESTES = [
+  ['Redes de Computadores', 3, 1],
+  ['Português', 3, 1],
+  ['Engenharia de Software', 3, 1],
+  ['Raciocínio Lógico, Estatística e Mat. Financeira', 3, 1],
+  ['Sistemas Operacionais', 2, 1],
+  ['Governança e Gestão de TI', 2, 1],
+  ['Segurança da Informação e LGPD', 2, 1],
+  ['Atualidades do Mercado Financeiro e Digital', 1, 0.5],
+  ['Programação', 2, 0.5],
+  ['Web, APIs e Arquitetura', 2, 0.5],
+  ['Ética, Compliance e ESG', 1, 0.5],
+  ['DevOps e Nuvem', 2, 0.5],
+  ['Banco de Dados', 1, 0.5],
+  ['Inglês Técnico', 1, 0.5]
+];
 let dados = carregar();
 let periodo = 7;
 let editando = null;
 let finalizando = false;
+let som = null;
+let tela = null;
+
+function cicloBanestes() {
+  return CICLO_BANESTES.map(([nome, horas, revisao], i) => ({ id: 'b' + i, nome, horas, revisao }));
+}
 
 function carregar() {
-  const padrao = { materias: [], sessoes: [], ciclo: { numero: 1, inicio: 0 }, metaDia: 4, timer: null };
+  const padrao = { materias: [], sessoes: [], ciclo: { numero: 1, tipo: 'teorico', inicio: 0 }, metaDia: 4, pomodoro: { foco: 25, pausa: 5, longa: 15 }, timer: null };
   try {
-    return Object.assign(padrao, JSON.parse(localStorage.getItem(CHAVE)));
-  } catch (e) {
-    return padrao;
+    Object.assign(padrao, JSON.parse(localStorage.getItem(CHAVE)));
+  } catch (e) {}
+  if (!padrao.materias.length) {
+    padrao.materias = cicloBanestes();
   }
+  padrao.materias.forEach(m => { m.revisao = m.revisao || 1; });
+  padrao.ciclo.tipo = padrao.ciclo.tipo || 'teorico';
+  if (padrao.timer && !padrao.timer.fase) {
+    padrao.timer = null;
+  }
+  return padrao;
 }
 
 function salvar() {
@@ -347,8 +387,23 @@ function tempo(min) {
 }
 
 function relogio(ms) {
-  const s = Math.floor(ms / 1000);
-  return [Math.floor(s / 3600), Math.floor(s / 60) % 60, s % 60].map(n => String(n).padStart(2, '0')).join(':');
+  const s = Math.ceil(ms / 1000);
+  return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+}
+
+function meta(m) {
+  return (dados.ciclo.tipo === 'revisao' ? m.revisao : m.horas) * 60;
+}
+
+function nomeCiclo(c) {
+  return (c.tipo === 'revisao' ? 'Revisão ' : 'Teórico ') + c.numero;
+}
+
+function proximoCiclo() {
+  if (dados.ciclo.tipo === 'revisao') {
+    return { numero: dados.ciclo.numero + 1, tipo: 'teorico' };
+  }
+  return { numero: dados.ciclo.numero, tipo: 'revisao' };
 }
 
 function somaMin(sessoes) {
@@ -368,28 +423,104 @@ function decorrido() {
   return dados.timer.acumulado + (dados.timer.inicio ? Date.now() - dados.timer.inicio : 0);
 }
 
+function duracao(fase) {
+  if (fase === 'foco') {
+    return dados.pomodoro.foco * 60000;
+  }
+  return (dados.timer.pomodoros % 4 === 0 ? dados.pomodoro.longa : dados.pomodoro.pausa) * 60000;
+}
+
+function focoAtual() {
+  return dados.timer.focoMs + (dados.timer.fase === 'foco' ? Math.min(decorrido(), duracao('foco')) : 0);
+}
+
+function avancar() {
+  if (!dados.timer || !dados.timer.inicio || decorrido() < duracao(dados.timer.fase)) {
+    return;
+  }
+  while (dados.timer.inicio && decorrido() >= duracao(dados.timer.fase)) {
+    const fim = dados.timer.inicio + duracao(dados.timer.fase) - dados.timer.acumulado;
+    if (dados.timer.fase === 'foco') {
+      dados.timer.focoMs += duracao('foco');
+      dados.timer.pomodoros++;
+      Object.assign(dados.timer, { fase: 'pausa', inicio: fim, acumulado: 0 });
+    } else {
+      Object.assign(dados.timer, { fase: 'foco', inicio: null, acumulado: 0 });
+    }
+  }
+  salvar();
+  avisar();
+  renderEstudar();
+}
+
+function avisar() {
+  if (navigator.vibrate) {
+    navigator.vibrate([400, 200, 400]);
+  }
+  if (som) {
+    [0, 0.4, 0.8].forEach(t => {
+      const o = som.createOscillator();
+      o.frequency.value = 880;
+      o.connect(som.destination);
+      o.start(som.currentTime + t);
+      o.stop(som.currentTime + t + 0.25);
+    });
+  }
+}
+
+function prepararSom() {
+  som = som || new AudioContext();
+  som.resume();
+}
+
+async function manterTela() {
+  if (!dados.timer || tela || !navigator.wakeLock) {
+    return;
+  }
+  try {
+    tela = await navigator.wakeLock.request('screen');
+    tela.onrelease = () => { tela = null; };
+  } catch (e) {
+    tela = null;
+  }
+}
+
+function soltarTela() {
+  if (tela) {
+    tela.release();
+  }
+}
+
+function mostrarRelogio() {
+  $('relogio').textContent = relogio(Math.max(0, duracao(dados.timer.fase) - decorrido()));
+  $('timerInfo').textContent = 'Estudado: ' + tempo(Math.floor(focoAtual() / 60000)) + ' · ' + dados.timer.pomodoros + (dados.timer.pomodoros === 1 ? ' pomodoro' : ' pomodoros');
+}
+
 function renderEstudar() {
-  const total = dados.materias.reduce((s, m) => s + m.horas * 60, 0);
-  const feito = dados.materias.reduce((s, m) => s + Math.min(minCiclo(m.id), m.horas * 60), 0);
+  const total = dados.materias.reduce((s, m) => s + meta(m), 0);
+  const feito = dados.materias.reduce((s, m) => s + Math.min(minCiclo(m.id), meta(m)), 0);
   const minHoje = somaMin(dados.sessoes.filter(s => s.data === hoje()));
-  const proxima = dados.materias.find(m => minCiclo(m.id) < m.horas * 60);
-  $('cicloNome').textContent = 'Ciclo ' + dados.ciclo.numero;
+  const proxima = dados.materias.find(m => minCiclo(m.id) < meta(m));
+  $('cicloNome').textContent = nomeCiclo(dados.ciclo) + (dados.ciclo.tipo === 'revisao' ? ' · use seus resumos' : ' · aula + resumo');
   $('cicloPct').textContent = total ? Math.round(feito / total * 100) + '% do ciclo' : 'Sem matérias';
   $('hojeTexto').textContent = 'Hoje: ' + tempo(minHoje) + ' de ' + tempo(dados.metaDia * 60);
   $('barraHoje').style.width = Math.min(100, minHoje / (dados.metaDia * 60) * 100) + '%';
   $('novoCiclo').hidden = !total || feito < total;
-  $('novoCiclo').textContent = 'Ciclo concluído · Iniciar ciclo ' + (dados.ciclo.numero + 1);
+  $('novoCiclo').textContent = 'Ciclo concluído · Iniciar ' + nomeCiclo(proximoCiclo());
   $('timer').hidden = !dados.timer;
   if (dados.timer) {
     $('timerMateria').textContent = nomeMateria(dados.timer.materia);
-    $('relogio').textContent = relogio(decorrido());
-    $('pausar').textContent = dados.timer.inicio ? 'Pausar' : 'Continuar';
+    $('timerFase').textContent = dados.timer.fase === 'foco' ? 'Foco' : 'Pausa';
+    $('timerFase').classList.toggle('pausa', dados.timer.fase === 'pausa');
+    $('pausar').textContent = dados.timer.inicio ? 'Pausar' : dados.timer.acumulado ? 'Continuar' : 'Começar foco';
+    $('pularPausa').hidden = dados.timer.fase !== 'pausa';
+    mostrarRelogio();
   }
   $('listaEstudar').replaceChildren(...dados.materias.map(m =>
     el('div', { className: 'card' + (m === proxima ? ' marcado' : '') },
       el('div', { className: 'topo' }, el('b', {}, m.nome), m === proxima && el('span', { className: 'selo' }, 'Próxima')),
-      el('span', {}, tempo(minCiclo(m.id)) + ' de ' + tempo(m.horas * 60) + ' no ciclo'),
-      barra(Math.min(1, minCiclo(m.id) / (m.horas * 60))),
+      el('span', {}, tempo(minCiclo(m.id)) + ' de ' + tempo(meta(m)) + ' no ciclo'),
+      barra(Math.min(1, minCiclo(m.id) / meta(m))),
       el('button', { className: 'botao pequeno', disabled: Boolean(dados.timer), onclick: () => iniciar(m.id) }, 'Estudar'))));
   if (!dados.materias.length) {
     $('listaEstudar').append(el('p', { className: 'vazio' }, 'Cadastre suas matérias na aba Matérias.'));
@@ -414,7 +545,7 @@ function renderEvolucao() {
   $('sessoes').replaceChildren(...[...dados.sessoes].sort((a, b) => b.ts - a.ts).slice(0, 8).map(s =>
     el('button', { className: 'card', onclick: () => excluirSessao(s) },
       el('div', { className: 'topo' }, el('b', {}, nomeMateria(s.materia)), el('em', {}, tempo(s.min))),
-      el('span', {}, br(s.data) + (s.questoes ? ' · ' + s.acertos + ' de ' + s.questoes + ' questões' : '') + ' · toque para excluir'))));
+      el('span', {}, br(s.data) + (s.pomodoros ? ' · ' + s.pomodoros + (s.pomodoros === 1 ? ' pomodoro' : ' pomodoros') : '') + (s.questoes ? ' · ' + s.acertos + ' de ' + s.questoes + ' questões' : '') + ' · toque para excluir'))));
   if (!dados.sessoes.length) {
     $('sessoes').append(el('p', { className: 'vazio' }, 'Nenhuma sessão registrada ainda.'));
   }
@@ -422,12 +553,13 @@ function renderEvolucao() {
 
 function renderMaterias() {
   $('totalMaterias').textContent = dados.materias.length + (dados.materias.length === 1 ? ' matéria' : ' matérias');
-  $('cicloHoras').textContent = 'Ciclo de ' + tempo(dados.materias.reduce((s, m) => s + m.horas * 60, 0));
+  $('cicloHoras').textContent = 'Teórico ' + tempo(dados.materias.reduce((s, m) => s + m.horas * 60, 0)) + ' · Revisão ' + tempo(dados.materias.reduce((s, m) => s + m.revisao * 60, 0));
   $('metaDia').value = String(dados.metaDia).replace('.', ',');
+  document.querySelectorAll('[data-pomodoro]').forEach(i => { i.value = dados.pomodoro[i.dataset.pomodoro]; });
   $('listaMaterias').replaceChildren(...dados.materias.map(m =>
     el('button', { className: 'card', onclick: () => abrirMateria(m) },
       el('div', { className: 'topo' }, el('b', {}, m.nome), el('span', { className: 'lado' }, 'Editar')),
-      el('span', {}, tempo(m.horas * 60) + ' no ciclo'))));
+      el('span', {}, tempo(m.horas * 60) + ' na teoria · ' + tempo(m.revisao * 60) + ' na revisão'))));
   if (!dados.materias.length) {
     $('listaMaterias').append(el('p', { className: 'vazio' }, 'Nenhuma matéria cadastrada ainda.'));
   }
@@ -440,8 +572,10 @@ function renderTudo() {
 }
 
 function iniciar(id) {
-  dados.timer = { materia: id, inicio: Date.now(), acumulado: 0 };
+  prepararSom();
+  dados.timer = { materia: id, fase: 'foco', inicio: Date.now(), acumulado: 0, focoMs: 0, pomodoros: 0 };
   salvar();
+  manterTela();
   renderEstudar();
 }
 
@@ -479,17 +613,26 @@ function abrirMateria(m) {
   $('tituloMateria').textContent = m ? 'Editar matéria' : 'Nova matéria';
   $('mNome').value = m ? m.nome : '';
   $('mHoras').value = m ? String(m.horas).replace('.', ',') : '';
+  $('mRevisao').value = m ? String(m.revisao).replace('.', ',') : '';
   $('mExcluir').hidden = !m;
   $('dlgMateria').showModal();
 }
 
 $('pausar').onclick = () => {
+  prepararSom();
   if (dados.timer.inicio) {
     pausarTimer();
   } else {
     dados.timer.inicio = Date.now();
     salvar();
+    manterTela();
   }
+  renderEstudar();
+};
+
+$('pularPausa').onclick = () => {
+  Object.assign(dados.timer, { fase: 'foco', inicio: Date.now(), acumulado: 0 });
+  salvar();
   renderEstudar();
 };
 
@@ -497,20 +640,33 @@ $('finalizar').onclick = () => {
   pausarTimer();
   renderEstudar();
   finalizando = true;
-  abrirSessao(dados.timer.materia, Math.max(1, Math.round(decorrido() / 60000)));
+  abrirSessao(dados.timer.materia, Math.max(1, Math.round(focoAtual() / 60000)));
 };
 
 $('descartar').onclick = () => {
-  if (!confirm('Descartar o tempo do cronômetro?')) {
+  if (!confirm('Descartar o tempo do pomodoro?')) {
     return;
   }
   dados.timer = null;
+  soltarTela();
   salvar();
   renderEstudar();
 };
 
 $('novoCiclo').onclick = () => {
-  dados.ciclo = { numero: dados.ciclo.numero + 1, inicio: Date.now() };
+  dados.ciclo = Object.assign(proximoCiclo(), { inicio: Date.now() });
+  salvar();
+  renderTudo();
+  scrollTo(0, 0);
+};
+
+$('carregarBanestes').onclick = () => {
+  if (!confirm('Substituir as matérias atuais pelo ciclo do Banestes (Analista de TI) e começar no Teórico 1?')) {
+    return;
+  }
+  dados.materias = cicloBanestes();
+  dados.ciclo = { numero: 1, tipo: 'teorico', inicio: Date.now() };
+  dados.timer = null;
   salvar();
   renderTudo();
 };
@@ -536,10 +692,11 @@ $('formSessao').onsubmit = e => {
     alert('Os acertos não podem ser maiores que as questões feitas.');
     return;
   }
-  dados.sessoes.push({ id: Date.now().toString(36), materia: $('sMateria').value, data: $('sData').value, min, questoes, acertos, ts: Date.now() });
+  dados.sessoes.push({ id: Date.now().toString(36), materia: $('sMateria').value, data: $('sData').value, min, questoes, acertos, pomodoros: finalizando ? dados.timer.pomodoros : 0, ts: Date.now() });
   if (finalizando) {
     dados.timer = null;
     finalizando = false;
+    soltarTela();
   }
   salvar();
   $('dlgSessao').close();
@@ -549,15 +706,17 @@ $('formSessao').onsubmit = e => {
 $('formMateria').onsubmit = e => {
   e.preventDefault();
   const horas = decimal($('mHoras').value);
-  if (!(horas > 0)) {
-    alert('Informe as horas no ciclo, por exemplo 3 ou 1,5.');
+  const revisao = decimal($('mRevisao').value);
+  if (!(horas > 0) || !(revisao > 0)) {
+    alert('Informe as horas na teoria e na revisão, por exemplo 3 ou 0,5.');
     return;
   }
   if (editando) {
     editando.nome = $('mNome').value.trim();
     editando.horas = horas;
+    editando.revisao = revisao;
   } else {
-    dados.materias.push({ id: Date.now().toString(36), nome: $('mNome').value.trim(), horas });
+    dados.materias.push({ id: Date.now().toString(36), nome: $('mNome').value.trim(), horas, revisao });
   }
   salvar();
   $('dlgMateria').close();
@@ -572,6 +731,7 @@ $('mExcluir').onclick = () => {
   dados.sessoes = dados.sessoes.filter(s => s.materia !== editando.id);
   if (dados.timer && dados.timer.materia === editando.id) {
     dados.timer = null;
+    soltarTela();
   }
   salvar();
   $('dlgMateria').close();
@@ -595,9 +755,29 @@ document.querySelectorAll('.periodo button').forEach(b => {
   };
 });
 
+document.querySelectorAll('[data-pomodoro]').forEach(i => {
+  i.onchange = () => {
+    const min = Math.round(decimal(i.value));
+    if (min > 0) {
+      dados.pomodoro[i.dataset.pomodoro] = min;
+      salvar();
+    }
+    renderTudo();
+  };
+});
+
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) {
+    avancar();
+    renderEstudar();
+    manterTela();
+  }
+});
+
 setInterval(() => {
   if (dados.timer) {
-    $('relogio').textContent = relogio(decorrido());
+    avancar();
+    mostrarRelogio();
   }
 }, 1000);
 
